@@ -12,7 +12,6 @@
     aspect-ratio: 25 / 27;
     margin: 0 auto;
     background: #050912;
-    cursor: pointer;
   }
   canvas { display: block; width: 100%; height: 100%; }
   .clock {
@@ -25,25 +24,15 @@
     letter-spacing: 0.04em;
     pointer-events: none;
   }
-  .hint {
-    position: absolute;
-    top: calc(14px + env(safe-area-inset-top, 0px));
-    left: 14px;
-    font: 12px/1 ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
-    color: #8d9bb5;
-    letter-spacing: 0.04em;
-    pointer-events: none;
-  }
   .clock i { width: 5px; height: 5px; border-radius: 50%; background: #e8a24a; }
 </style>
 </head>
 <body>
-<main class="stage" id="stage" title="Nhấn để bật hoặc tắt nhạc">
+<main class="stage" id="stage">
   <canvas id="cv" role="img" aria-label="Cây thông Noel ASCII mọc dần dưới bầu trời sao, kèm dòng chữ Merry Christmas 2026"></canvas>
-  <div class="hint" id="hint">♪ đang tải nhạc...</div>
   <div class="clock"><i></i><span id="clk">t 00.00s</span></div>
 </main>
- <audio id="bgm" src="Christmas.mp4" preload="auto" autoplay loop></audio>
+<audio id="bgm" src="Christmas.mp4" preload="auto" autoplay loop></audio>
 
 <script>
 const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
@@ -246,37 +235,19 @@ function draw(t) {
 }
 
 const bgm = document.getElementById('bgm');
-const hint = document.getElementById('hint');
 let t0 = performance.now(), started = false;
 const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Tự động phát nhạc từ đầu khi trang được tải
+// Tự động chạy nhạc từ đầu khi tải trang
 window.addEventListener('load', () => {
   bgm.currentTime = 0;
   bgm.muted = false;
   bgm.play().then(() => {
     started = true;
     t0 = performance.now();
-    hint.textContent = '♪ đang bật · nhấn để tắt';
-  }).catch(() => {
-    // Nếu trình duyệt chặn autoplay, hiển thị dòng chữ hướng dẫn nhấn để bật
-    hint.textContent = '♪ nhấn để bật nhạc';
+  }).catch(err => {
+    console.log("Trình duyệt yêu cầu tương tác để phát âm thanh:", err);
   });
-});
-
-stage.addEventListener('pointerdown', () => {
-  if (!started) {
-    bgm.currentTime = 0;
-    bgm.muted = false;
-    bgm.play().then(() => {
-      started = true;
-      t0 = performance.now();
-      hint.textContent = '♪ đang bật · nhấn để tắt';
-    }).catch(() => { hint.textContent = '♪ không bật được nhạc'; });
-  } else {
-    bgm.muted = !bgm.muted;
-    hint.textContent = bgm.muted ? '♪ đã tắt · nhấn để bật' : '♪ đang bật · nhấn để tắt';
-  }
 });
 
 function frame(now) {
