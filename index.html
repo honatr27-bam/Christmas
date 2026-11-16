@@ -40,10 +40,10 @@
 <body>
 <main class="stage" id="stage" title="Nhấn để bật hoặc tắt nhạc">
   <canvas id="cv" role="img" aria-label="Cây thông Noel ASCII mọc dần dưới bầu trời sao, kèm dòng chữ Merry Christmas 2026"></canvas>
-  <div class="hint" id="hint">♪ nhấn để bật nhạc</div>
+  <div class="hint" id="hint">♪ đang tải nhạc...</div>
   <div class="clock"><i></i><span id="clk">t 00.00s</span></div>
 </main>
- <audio id="bgMusic" src="Christmas.mp4" preload="auto"></audio>
+ <audio id="bgm" src="Christmas.mp4" preload="auto" autoplay loop></audio>
 
 <script>
 const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
@@ -71,7 +71,6 @@ function resize() {
   ctx.textBaseline = 'middle';
 }
 
-// Số ngẫu nhiên xác định theo (a, b, c) để cảnh giống nhau mỗi lần chạy
 function h(a, b, c) {
   let x = Math.imul(a + 1, 374761393) ^ Math.imul(b + 1, 668265263) ^ Math.imul((c | 0) + 1, 2147483647);
   x = Math.imul(x ^ (x >>> 13), 1274126177);
@@ -88,7 +87,6 @@ function cell(c, r, s, col, al, clear) {
   ctx.fillText(s, (c + 0.5) * cw, (r + 0.5) * ch);
 }
 
-/* ---------- Dữ liệu cố định ---------- */
 const STARS = Array.from({ length: 260 }, (_, i) => ({
   c: Math.floor(h(i, 1, 50) * COLS),
   r: Math.floor(h(i, 2, 50) * (ROWS - 2)),
@@ -135,7 +133,6 @@ const MSG = (() => {
   return out;
 })();
 
-/* ---------- Hình dạng cây ---------- */
 function shape(t) {
   const a = ease((t - 2.4) / 1.6), b = ease((t - 4) / 4);
   return { H: 17 * a + 24 * b, W: 28 * ease((t - 2.4) / 1.4), k: 1 - b };
@@ -145,13 +142,11 @@ function halfW(f, W, k, r) {
   return W * ((1 - k) * tri + k * dome) * (1 + 0.07 * (1 - k) * Math.sin(r * 0.85));
 }
 
-/* ---------- Vẽ một khung hình ---------- */
 function draw(t) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, cv.width, cv.height);
 
-  // Mặt đất: chấm rồi các vạch thưa dần về phía gần
   const gAl = ease(t / 0.8);
   for (let r = GROUND; r < ROWS; r++) {
     const g = r - GROUND, p = 2 + Math.floor(Math.max(0, g - 3) / 4);
@@ -161,20 +156,17 @@ function draw(t) {
     }
   }
 
-  // Sao
   for (const s of STARS) {
     const al = ease((t - s.ap) / 0.6) * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph))) * s.br;
     if (al > 0.02) cell(s.c, s.r, s.ch, s.br > 0.8 ? WHITE : '#8d9bb5', al);
   }
 
-  // Tuyết rơi
   const sa = ease((t - 4.5) / 2) * 0.7;
   if (sa > 0) for (const f of SNOW) {
     const r = (f.r + Math.max(0, t - 4.5) * f.sp) % ROWS;
     cell(Math.round(f.c + Math.sin(t * 0.7 + f.ph) * 1.5), Math.floor(r), f.ch, WHITE, sa);
   }
 
-  // Cây
   const { H, W, k } = shape(t);
   if (H > 0.5) {
     const top = Math.floor(BASE - H);
@@ -189,7 +181,6 @@ function draw(t) {
         let col, al = 0.55 + 0.45 * h(c, r, 5);
         if (f > 0.8 && k > 0.4) col = '#d9dde6';
         else col = h(c, r, 9) < 0.07 ? WHITE : GREENS[Math.floor(h(c, r, 13) * GREENS.length)];
-        // Dây đèn vàng quét từ trái sang phải
         for (const b of BANDS) {
           const p = ease((t - b.t) / 1.4);
           if (p > 0 && Math.abs(r - (BASE - b.f * H + (c - MID) * b.s)) < 1.3 && (c - (MID - w)) / (2 * w) < p) {
@@ -201,12 +192,10 @@ function draw(t) {
         cell(c, r, s, col, al, true);
       }
     }
-    // Thân cây
     if (t > 3.2) for (let r = BASE + 1; r <= BASE + 3; r++)
       for (let c = MID - 1; c <= MID + 1; c++)
         cell(c, r, h(c, r, 21) < 0.5 ? 'x' : '%', '#b3402e', 0.5, true);
 
-    // Quả châu
     for (let i = 0; i < ORNS.length; i++) {
       const o = ORNS[i];
       if (t < o.t) continue;
@@ -217,7 +206,6 @@ function draw(t) {
     }
   }
 
-  // Hộp quà
   for (const g of GIFTS) {
     const p = ease((t - g.t) / 0.8);
     if (p <= 0) continue;
@@ -231,7 +219,6 @@ function draw(t) {
     }
   }
 
-  // Ngôi sao và tia sáng trên đỉnh
   if (t > 9) {
     const p = ease((t - 9) / 0.8), pulse = 0.8 + 0.2 * Math.sin(t * 4);
     const sr = Math.floor(BASE - 41) + 2;
@@ -249,7 +236,6 @@ function draw(t) {
     }
   }
 
-  // Lời chúc
   MSG.forEach((m, i) => {
     const p = ease((t - 16.3 - i * 0.1) / 0.5);
     if (p > 0) cell(m.c, 69, m.ltr, m.col, 0.85 * p);
@@ -259,13 +245,25 @@ function draw(t) {
   clk.textContent = 't ' + t.toFixed(2).padStart(5, '0') + 's';
 }
 
-/* ---------- Chạy ---------- */
 const bgm = document.getElementById('bgm');
 const hint = document.getElementById('hint');
 let t0 = performance.now(), started = false;
 const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Lần nhấn đầu: bật nhạc và chạy lại từ đầu cho khớp hình. Các lần sau: tắt/bật tiếng.
+// Tự động phát nhạc từ đầu khi trang được tải
+window.addEventListener('load', () => {
+  bgm.currentTime = 0;
+  bgm.muted = false;
+  bgm.play().then(() => {
+    started = true;
+    t0 = performance.now();
+    hint.textContent = '♪ đang bật · nhấn để tắt';
+  }).catch(() => {
+    // Nếu trình duyệt chặn autoplay, hiển thị dòng chữ hướng dẫn nhấn để bật
+    hint.textContent = '♪ nhấn để bật nhạc';
+  });
+});
+
 stage.addEventListener('pointerdown', () => {
   if (!started) {
     bgm.currentTime = 0;
@@ -282,7 +280,6 @@ stage.addEventListener('pointerdown', () => {
 });
 
 function frame(now) {
-  // Khi nhạc đang chạy, lấy thời gian từ nhạc để hình luôn khớp tiếng
   const t = started && !bgm.paused ? bgm.currentTime % LOOP : ((now - t0) / 1000) % LOOP;
   draw(t);
   requestAnimationFrame(frame);
